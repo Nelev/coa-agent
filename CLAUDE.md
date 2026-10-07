@@ -56,7 +56,7 @@ UI: Vitest + jsdom + Testing Library; `api/runs.test.ts` stubs `globalThis.fetch
 - `coa-ui` uses a Next.js version newer than training data. Read `coa-ui/AGENTS.md` and `node_modules/next/dist/docs/` before writing Next code (`RouteContext`, async `params`).
 - Injected state is validated against `RunState`'s types, so a field a tool sets to `None` (to invalidate it) must allow `None`.
 - `TestClient(app)` with an open SSE stream hangs: a stream that never ends can only be tested through the generator.
-- Ports 8000/3000 may be taken by another project; `docker compose` takes `API_PORT` / `UI_PORT`, and the dev servers take `--port`.
+- Ports 8000/3000 may be taken by another project (medas uses them): `.claude/launch.json` starts the API on 8100 and the UI on 3100 (the UI gets `API_BASE_URL` from the launch config, not from `.env.local`); `docker compose` takes `API_PORT` / `UI_PORT`, and the dev servers take `--port`.
 - `interrupt()` re-runs its node from the top on resume, so `ask_user` must do nothing before it.
 - Pass `invariant=1` to reportlab so regenerating the PDFs doesn't change their bytes.
 - PyMuPDF is AGPL; fine for synthetic data, a decision before any real-data step.

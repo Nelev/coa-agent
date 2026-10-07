@@ -4,16 +4,16 @@
     {
       "name": "coa-api",
       "runtimeExecutable": "uv",
-      "runtimeArgs": ["run", "fastapi", "dev", "main.py"],
+      "runtimeArgs": ["run", "fastapi", "dev", "main.py", "--port", "8100"],
       "cwd": "coa-api",
-      "port": 8000
+      "port": 8100
     },
     {
       "name": "coa-ui",
-      "runtimeExecutable": "yarn",
-      "runtimeArgs": ["dev"],
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["API_BASE_URL=http://localhost:8100", "yarn", "dev", "--port", "3100"],
       "cwd": "coa-ui",
-      "port": 3000
+      "port": 3100
     }
   ]
 }
