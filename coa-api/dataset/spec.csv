@@ -1,0 +1,13 @@
+material_code,test,min,max,unit,spec_ref
+MAT-001,identification,,,,SPEC-PARA-API-v3
+MAT-001,assay,98.0,102.0,%,SPEC-PARA-API-v3
+MAT-001,water_content,,0.5,%,SPEC-PARA-API-v3
+MAT-001,total_impurities,,0.50,%,SPEC-PARA-API-v3
+MAT-001,residual_solvents,,5000,ppm,SPEC-PARA-API-v3
+MAT-001,heavy_metals,,10,ppm,SPEC-PARA-API-v3
+MAT-002,identification,,,,SPEC-PARA-DC-v2
+MAT-002,assay,88.0,92.0,%,SPEC-PARA-DC-v2
+MAT-002,water_content,,1.0,%,SPEC-PARA-DC-v2
+MAT-002,total_impurities,,0.50,%,SPEC-PARA-DC-v2
+MAT-002,residual_solvents,,5000,ppm,SPEC-PARA-DC-v2
+MAT-002,heavy_metals,,10,ppm,SPEC-PARA-DC-v2

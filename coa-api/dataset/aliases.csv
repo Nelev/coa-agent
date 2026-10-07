@@ -1,0 +1,18 @@
+supplier_term,internal_test,supplier_unit,internal_unit,factor
+Identification,identification,,,1
+Identity (IR),identification,,,1
+Assay,assay,%,%,1
+Assay (HPLC),assay,%,%,1
+Water content,water_content,%,%,1
+Water (KF),water_content,%,%,1
+LOD,water_content,%,%,1
+Loss on drying,water_content,%,%,1
+Total impurities,total_impurities,%,%,1
+Total impurities,total_impurities,ppm,%,0.0001
+"Related substances, total",total_impurities,%,%,1
+"Related substances, total",total_impurities,ppm,%,0.0001
+Residual solvents,residual_solvents,ppm,ppm,1
+Residual solvents,residual_solvents,%,ppm,10000
+Heavy metals,heavy_metals,ppm,ppm,1
+Heavy metals,heavy_metals,mg/kg,ppm,1
+Heavy metals (as Pb),heavy_metals,ppm,ppm,1

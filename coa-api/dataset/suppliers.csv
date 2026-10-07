@@ -1,0 +1,5 @@
+supplier_id,name,material_code,status,approval_expiry
+SUP-001,Nordchem Pharma GmbH,MAT-001,approved,2028-06-30
+SUP-001,Nordchem Pharma GmbH,MAT-002,approved,2028-06-30
+SUP-002,Valdora Fine Chemicals,MAT-001,approved,2028-03-31
+SUP-003,Kestrel Ingredients Ltd,MAT-001,approved,2026-09-15
