@@ -45,7 +45,9 @@ class Settings(BaseSettings):
     @property
     def recursion_limit(self) -> int:
         # Hard backstop only; the router enforces the budget.
-        return 2 * self.tool_budget + 4
+        # Three graph steps per tool call (agent, tools, account), plus nudges and
+        # the forced submit.
+        return 3 * self.tool_budget + 12
 
 
 @lru_cache

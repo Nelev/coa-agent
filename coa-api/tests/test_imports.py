@@ -7,7 +7,7 @@ import pytest
 MODULES = [
     "main",
     "baseline",
-    "trace",
+    "tracing",
     "controller.runs",
     "agent.orchestrator",
     "agent.registry",

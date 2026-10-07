@@ -2,7 +2,7 @@
 
 A 5-day proof of concept: on 8 synthetic Certificates of Analysis, an AI agent picks a different path for each problem, investigates, explains and drafts follow-ups, while the pass/fail decision stays with deterministic rules. Nothing leaves the system without a human. Demo on synthetic data; not a GMP system.
 
-Status: days 1–2 done (the dataset, schemas, code tools, decision rules, `read_coa`, `draft_supplier_request`, the tool registry). The live `read_coa` check on the 8 PDFs still needs an OpenRouter key. C6–C11 are skeletons; see `SCAFFOLD.md` and the plan for the schedule.
+Status: days 1–3 built and run live once: with `openai/gpt-4.1-mini`, `read_coa` extracts all 8 PDFs correctly and the agent reached the expected status on all 8 scenarios in two full runs (the baseline gets 6 of 8). `openai/gpt-4.1` itself has not run: it is blocked by a guardrail in the OpenRouter workspace used so far (see Environment). Stability over 3 runs, cost tables and the demo are day 5. C9–C11 are skeletons; see `SCAFFOLD.md` and the plan for the schedule.
 
 ## Setup
 
@@ -56,6 +56,16 @@ The baseline runs the same tools in a fixed order, including `check_supplier`. W
 
 ## Known gaps
 
-- The agent loop, `submit` guard, baseline, API routes (beyond `/health`), UI panels and `evaluate.py` are unimplemented.
-- `read_coa` has only been tested with a fake model; run `check_extraction` once the key is set.
+- API routes (beyond `/health`), UI panels and `evaluate.py` are unimplemented.
+- Only `gpt-4.1-mini` has been run live, twice over all 8; the prompt was tuned against it (not for `gpt-4.1` or other models). Re-run `check_extraction` and `run_scenario` after any change of model or prompt.
+
+## Running scenarios
+
+```bash
+cd coa-api
+uv run python -m dataset.eval.run_scenario 2          # one scenario, agent and baseline, trace printed
+uv run python -m dataset.eval.run_scenario            # all 8; exit 1 if any misses its expected result
+uv run python -m dataset.eval.run_scenario 1 --model anthropic/claude-sonnet-4.5
+```
+
 - Out of scope: login, a production database, real supplier data, mailbox, LIMS or ERP, validation documents, more than one material.

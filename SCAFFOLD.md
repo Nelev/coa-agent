@@ -92,7 +92,7 @@ coa/
 │   ├── baseline.py               # C8  fixed read → normalize → check, same tools
 │   ├── model/                    # C7  ORM: Run, Step
 │   ├── database/                 #     async engine, create_all, WAL
-│   ├── trace.py                  #     write_step, tail(run_id, after_seq) for SSE
+│   ├── tracing.py                #     write_step, tail(run_id, after_seq) for SSE
 │   ├── controller/runs.py        #     start, resume, events: the one agent seam
 │   ├── dataset/                  # C1  inputs and ground truth, all invented
 │   │   ├── README.md             #     what each scenario plants
@@ -131,7 +131,7 @@ coa/
 | C4   | `coa-api/tools/code_tools.py`, `rules.py`   | pure tests: every limit, unit pair, expired supplier, ambiguous material           |
 | C5   | `coa-api/agent/registry.py`                 | tool errors come back as messages; two failures of one tool → REVIEW               |
 | C6   | `coa-api/agent/orchestrator.py`, `guard.py` | scripted fake model: budget → `force_submit`, interrupt and resume, refused submit |
-| C7   | `coa-api/model/`, `database/`, `trace.py`   | in-memory SQLite: step order, tail from `after_seq`                                |
+| C7   | `coa-api/model/`, `database/`, `tracing.py` | in-memory SQLite: step order, tail from `after_seq`                                |
 | C8   | `coa-api/baseline.py`                       | the 8 PDFs' extractions stubbed; asserts baseline statuses                         |
 | C9   | `coa-api/main.py`, `controller/runs.py`     | patch `controller.runs.run_agent`; route and SSE tests                             |
 | C10  | `coa-ui/`                                   | Vitest: stub `fetch` as in medas; store reset in `test/setup.ts`                   |
@@ -185,3 +185,19 @@ Not built (plan days 1–5): data generator, tools, `decide_status`, orchestrato
 - Tests: 152 (was 45). The deterministic path reproduces `expected.csv` for all 8 scenarios without a model, and the registry tests run the tools through a `ToolNode` graph with a checkpointer, including `ask_user` pausing and resuming, which was the main day-3 risk.
 - Not verified: `read_coa` against the real model. `uv run python -m dataset.eval.check_extraction` does it once `OPENROUTER_API_KEY` is set.
 - Open for day 3: count failed tool calls toward the budget (a refused call currently returns an error message without updating `calls_used`), and the two-failures-of-one-tool rule.
+
+## 11. Day 3 (agent loop, trace, baseline)
+
+- `agent/orchestrator.py`: the graph (agent, tools, account, nudge, force_submit) with the budget, failure and nudge rules; `agent/guard.py` builds the `submit` result from state; `submit` has no status argument.
+- `tracing.py` (renamed from `trace.py`, which shadows the standard library), `agent/callbacks.py` (one handler: tool, input, output, reasoning, tokens including nested calls, ms).
+- `baseline.py`: the same tools in a fixed order. It cannot ask, so scenario 8 is `ERROR`, not a wrong match. With these aliases it should pass scenario 6; its expected statuses per scenario are pinned in `tests/test_baseline.py`: 1 PASS, 2 FAIL, 3 FAIL, 4 FAIL, 5 FAIL, 6 PASS, 7 PASS, 8 ERROR, so 6 of 8 correct, missing 2 and 8.
+- `controller/runs.py`: `Runner` (start, resume, baseline) and `open_runner` (AsyncSqliteSaver). `dataset/eval/run_scenario.py` runs scenarios from the command line; `dataset/eval/scoring.py` judges a run against `expected.csv` and will be reused by `evaluate.py`.
+- The recursion backstop is now `3 x budget + 12` (three graph steps per call).
+- 225 tests, scripted models.
+
+### Day 3 gate, run live (`openai/gpt-4.1-mini`; `gpt-4.1` is blocked by an OpenRouter workspace guardrail)
+
+- `check_extraction`: 8/8. The first run reported 0/8 because the ground truth had the identification unit as `None` where the PDF prints `-`; the model was right and the ground truth was fixed.
+- `run_scenario`: 8/8 expected statuses in two full runs, 6 calls on the clean CoA, 9 on scenario 8 (with its question), ~17-24k input tokens and 8-16 s per run. The baseline matched its pinned statuses (6 of 8).
+- What the live runs found: the trace handler lost the link between a tool and its nested model call (a chain sits between them), so `read_coa`'s tokens showed up as a phantom "(reply)" step; fixed and covered by a test with a realistic nested chain. The agent drafted a supplier email about our own expired approval in scenario 5; the prompt did not stop that, a sentence in the tool's description did. Scenario 6's summary now states each mapping.
+- Not yet measured: stability over 3 repeated runs, other models, `gpt-4.1` itself.

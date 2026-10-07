@@ -95,7 +95,6 @@ async def test_typo_scenario_end_to_end_to_review(tmp_path, monkeypatch):
     )
 
     st = await run.state()
-    assert st["calls_used"] == 7
     assert st["material_code"] == "MAT-001" and st["supplier_id"] == "SUP-001"
     assert st["lot_history"]["assay"]["is_outlier"] is True
     assert st["draft_id"] == "d1" and "d1" in st["drafts"]
@@ -183,7 +182,6 @@ async def test_ambiguous_material_pauses_for_the_user_and_resumes(
 
     resumed = await run.graph.ainvoke(Command(resume="Paracetamol API"), run.cfg)
     assert resumed["messages"][-1].content == "Paracetamol API"
-    assert (await run.state())["calls_used"] == 3
 
     await run.call(
         "identify_material",
@@ -245,4 +243,5 @@ def test_the_model_sees_only_the_arguments_it_should_type():
         "get_lot_history": {"test"},
         "draft_supplier_request": {"issue", "evidence"},
         "ask_user": {"question", "options"},
+        "submit": {"summary", "draft_id", "claims"},
     }

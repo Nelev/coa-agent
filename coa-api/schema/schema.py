@@ -12,6 +12,8 @@ from pydantic import BaseModel, Field, field_validator
 Status = Literal["PASS", "REVIEW", "FAIL"]
 # Where a run is in its life. The plan's "WAITING" is a phase, not a status.
 RunPhase = Literal["running", "waiting", "done", "error"]
+# The baseline can also fail to run at all (it has no way to ask or recover).
+BaselineStatus = Literal["PASS", "REVIEW", "FAIL", "ERROR"]
 Severity = Literal["fail", "review"]
 # oos: outside the spec. missing: a required test is absent. expired: the
 # supplier's approval has lapsed. unapproved: no approval for this material.
@@ -236,6 +238,14 @@ class RunResult(BaseModel):
         if len(v.split()) > MAX_SUMMARY_WORDS:
             raise ValueError(f"summary is over {MAX_SUMMARY_WORDS} words")
         return v
+
+
+class BaselineResult(BaseModel):
+    """What the fixed pipeline returns: a status and the findings, no cause."""
+
+    status: BaselineStatus
+    findings: list[Finding] = []
+    summary: str
 
 
 class NotFound(Exception):

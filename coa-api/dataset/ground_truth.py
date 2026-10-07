@@ -23,7 +23,7 @@ def _result(s: Scenario, r: Row) -> ExtractedResult:
         test=r.name,
         value=value,
         result_text=text,
-        unit=None if r.unit == "-" else r.unit,
+        unit=r.unit,  # exactly as printed, "-" included
         page=1 if s.layout == "A" else 2,
         source_text=" ".join(cells),
         confidence=CONFIDENCE,

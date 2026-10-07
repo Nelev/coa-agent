@@ -31,4 +31,8 @@ class RunState(TypedDict):
     calls_used: NotRequired[int]
     # Per-tool consecutive failures: two of the same tool end the run as REVIEW.
     failures: NotRequired[dict[str, int]]
+    # Set by submit (accepted) or the forced submit; ends the run.
     result: NotRequired[dict]
+    decision: NotRequired[dict]
+    # Times the model answered without a tool call; it is told to submit.
+    nudges: NotRequired[int]

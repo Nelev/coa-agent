@@ -21,9 +21,11 @@ from langgraph.prebuilt import InjectedState, ToolNode
 from langgraph.types import Command, interrupt
 from pydantic import BaseModel
 
+from agent import guard
 from agent.state import RunState
 from schema import (
     AgentUnavailable,
+    ErrorClaim,
     ExtractedResult,
     NormalizedResult,
     ToolInputError,
@@ -42,8 +44,8 @@ READ_NOTICE = (
 def _done(
     state: RunState, name: str, call_id: str, payload: BaseModel | dict | str, **updates
 ) -> Command:
-    """The tool's answer for the model, plus what it wrote to the state. Every
-    call counts against the budget."""
+    """The tool's answer for the model, plus what it wrote to the state. Calls
+    are counted by the graph (orchestrator.account), so a refused one counts."""
     content = (
         payload
         if isinstance(payload, str)
@@ -56,7 +58,6 @@ def _done(
     return Command(
         update={
             "messages": [ToolMessage(content=content, tool_call_id=call_id, name=name)],
-            "calls_used": state.get("calls_used", 0) + 1,
             **updates,
         }
     )
@@ -194,7 +195,10 @@ def get_lot_history(test: str, state: State, tool_call_id: CallId) -> Command:
 async def draft_supplier_request(
     issue: str, evidence: str, state: State, tool_call_id: CallId
 ) -> Command:
-    """Draft an email asking the supplier to correct or complete the CoA.
+    """Draft an email asking the supplier to correct or complete the CoA: a
+    likely typo or wrong unit, a missing test, an out-of-spec result.
+    NOT for supplier approval status (expired or missing approval): that is
+    our internal matter, not something the supplier can fix on the CoA.
     `issue` is one sentence; `evidence` is the numbers behind it (value, limit,
     history). The draft is shown to the user and never sent."""
     extraction = _need(state, "extraction", "read_coa")
@@ -227,6 +231,38 @@ def ask_user(
     return _done(state, "ask_user", tool_call_id, str(answer))
 
 
+@tool
+def submit(
+    summary: str,
+    state: State,
+    tool_call_id: CallId,
+    draft_id: str | None = None,
+    claims: list[ErrorClaim] | None = None,
+) -> Command:
+    """Finish the run. You do not choose the status: it is computed from
+    check_spec and check_supplier, which must both have run. `summary` is at
+    most 120 words and cites the evidence (values, limits, history).
+    `draft_id` is a draft you made, if any. In `claims`, list a finding you
+    believe is a CoA error (typo, wrong unit), with the get_lot_history numbers
+    as evidence; it is accepted only if that history shows the value as an
+    outlier, otherwise the finding stays a failure."""
+    result, decision = guard.build_result(state, summary, draft_id, claims)
+    body = {
+        "accepted": True,
+        "status": result.status,
+        "claims_refused": decision.refused,
+        "reasons": decision.reasons,
+    }
+    return _done(
+        state,
+        "submit",
+        tool_call_id,
+        body,
+        result=result.model_dump(mode="json"),
+        decision=decision.model_dump(mode="json"),
+    )
+
+
 TOOLS = [
     read_coa,
     identify_material,
@@ -236,6 +272,7 @@ TOOLS = [
     get_lot_history,
     draft_supplier_request,
     ask_user,
+    submit,
 ]
 
 

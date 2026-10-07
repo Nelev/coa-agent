@@ -1,6 +1,7 @@
 """Async SQLite engine for the trace store. No migrations: create_all at boot."""
 
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
@@ -42,6 +43,15 @@ async def dispose_engine() -> None:
 
 
 async def get_session() -> AsyncGenerator[AsyncSession]:
+    if _sessions is None:
+        raise RuntimeError("init_engine() has not run")
+    async with _sessions() as session:
+        yield session
+
+
+@asynccontextmanager
+async def session_scope() -> AsyncGenerator[AsyncSession]:
+    """A session for code outside a request (the trace handler, the runner)."""
     if _sessions is None:
         raise RuntimeError("init_engine() has not run")
     async with _sessions() as session:

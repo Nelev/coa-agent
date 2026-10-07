@@ -20,3 +20,14 @@ def _no_real_env(monkeypatch):
     for name in Settings.model_fields:
         monkeypatch.delenv(name.upper(), raising=False)
     monkeypatch.setitem(Settings.model_config, "env_file", None)
+
+
+@pytest.fixture
+async def db(tmp_path, monkeypatch):
+    """A trace database in a temp directory."""
+    from database import dispose_engine, init_engine
+
+    monkeypatch.setenv("STATE_DIR", str(tmp_path))
+    await init_engine()
+    yield tmp_path
+    await dispose_engine()

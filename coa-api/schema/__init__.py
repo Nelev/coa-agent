@@ -1,6 +1,8 @@
 from schema.schema import (
     MAX_SUMMARY_WORDS,
     AgentUnavailable,
+    BaselineResult,
+    BaselineStatus,
     Candidate,
     Decision,
     Draft,
@@ -32,6 +34,8 @@ from schema.schema import (
 __all__ = [
     "MAX_SUMMARY_WORDS",
     "AgentUnavailable",
+    "BaselineResult",
+    "BaselineStatus",
     "Candidate",
     "Decision",
     "Draft",
