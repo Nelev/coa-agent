@@ -2,7 +2,7 @@
 
 A 5-day proof of concept: on 8 synthetic Certificates of Analysis, an AI agent picks a different path for each problem, investigates, explains and drafts follow-ups, while the pass/fail decision stays with deterministic rules. Nothing leaves the system without a human. Demo on synthetic data; not a GMP system.
 
-Status: all five days built. A fixed baseline and an agent run the same tools on 8 synthetic CoAs behind a FastAPI API (live event stream) and a Next.js page; `evaluate.py` scores them. With `openai/gpt-4.1-mini` the agent reached the expected status in 24 of 24 runs (3 per scenario, every scenario stable), against 6 of 8 for the baseline, at about 7 tool calls, one cent and 15 seconds per CoA: see [Results](#results). `openai/gpt-4.1` itself has not run, because a guardrail in the OpenRouter workspace used so far blocks it (see Environment). The five-minute demo is in [`DEMO.md`](DEMO.md).
+Status: all five days built. A fixed baseline and an agent run the same tools on 8 synthetic CoAs behind a FastAPI API (live event stream) and a Next.js page; `evaluate.py` scores them. With `openai/gpt-4.1-mini` the agent reached the expected status in 24 of 24 runs (3 per scenario, every scenario stable), against 6 of 8 for the baseline, at about 7 tool calls, one cent and 15 seconds per CoA: see [Results](#results). `openai/gpt-4.1` itself has not run, because a guardrail in the OpenRouter workspace used so far blocks it (see Environment). The five-minute demo is in [`DEMO.md`](DEMO.md), and a plain-language guide for non-technical readers is in [`docs/`](docs/README.md) (PDF and Word).
 
 ## Setup
 

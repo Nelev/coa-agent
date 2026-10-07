@@ -18,3 +18,4 @@ uv.lock   linguist-generated=true
 *.jpg   binary
 *.pdf   binary
 *.woff2 binary
+*.docx binary
