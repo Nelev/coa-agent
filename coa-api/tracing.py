@@ -7,7 +7,7 @@ next integer.
 
 import json
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from database import session_scope
 from model import Run, Step
@@ -15,8 +15,9 @@ from schema import NotFound, ToolCall
 
 
 def _json(value):
-    """JSON column content: parsed if it is a JSON string, else as given."""
-    if isinstance(value, str):
+    """JSON column content: a tool's JSON object or array is stored parsed, any
+    other text (an answer like "2" or "true", an error) as it is."""
+    if isinstance(value, str) and value.lstrip().startswith(("{", "[")):
         try:
             return json.loads(value)
         except json.JSONDecodeError:
@@ -39,8 +40,9 @@ def _call(step: Step) -> ToolCall:
 
 async def create_run(run_id: str, kind: str, pdf_id: str) -> None:
     async with session_scope() as session:
-        session.add(Run(id=run_id, kind=kind, pdf_id=pdf_id))
-        await session.commit()
+        if await session.get(Run, run_id) is None:
+            session.add(Run(id=run_id, kind=kind, pdf_id=pdf_id))
+            await session.commit()
 
 
 async def write_step(
@@ -112,3 +114,28 @@ async def get_run(run_id: str) -> Run:
         if run is None:
             raise NotFound("Run not found")
         return run
+
+
+async def claim_answer(run_id: str) -> bool:
+    """Move a waiting run to running, once: the update only matches a run that
+    is still waiting, so of two simultaneous answers one gets False."""
+    async with session_scope() as session:
+        claimed = await session.execute(
+            update(Run)
+            .where(Run.id == run_id, Run.phase == "waiting")
+            .values(phase="running", pending_question=None)
+        )
+        await session.commit()
+        return claimed.rowcount == 1
+
+
+async def fail_orphans() -> int:
+    """At startup: runs still "running" belonged to a process that is gone, so
+    nothing will ever finish them. (A waiting run is kept: its checkpoint
+    survives and its answer can still resume it.)"""
+    async with session_scope() as session:
+        orphaned = await session.execute(
+            update(Run).where(Run.phase == "running").values(phase="error")
+        )
+        await session.commit()
+        return orphaned.rowcount

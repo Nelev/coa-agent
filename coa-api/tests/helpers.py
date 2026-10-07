@@ -40,15 +40,10 @@ class ScriptedModel:
         return self.script.pop(0)
 
 
-def install_pdf(tmp_path: Path, monkeypatch, scenario, pdf_id="pdf1") -> str:
-    """Copy a scenario's PDF where read_coa looks, pin today's date, and
-    replace the two model tools with the ground truth and a canned draft."""
-    monkeypatch.setenv("STATE_DIR", str(tmp_path))
+def stub_model_tools(monkeypatch, scenario) -> None:
+    """Pin today's date and replace the two model tools: read_coa returns the
+    scenario's ground truth, the draft is canned."""
     monkeypatch.setenv("REFERENCE_DATE", "2026-10-07")
-    (tmp_path / "uploads").mkdir(exist_ok=True)
-    shutil.copy(
-        DATASET_DIR / "coa" / scenario.file, tmp_path / "uploads" / f"{pdf_id}.pdf"
-    )
 
     async def fake_read(path, *, model=None):
         return truth(scenario)
@@ -58,6 +53,16 @@ def install_pdf(tmp_path: Path, monkeypatch, scenario, pdf_id="pdf1") -> str:
 
     monkeypatch.setattr(ai_tools, "read_coa", fake_read)
     monkeypatch.setattr(ai_tools, "draft_supplier_request", fake_draft)
+
+
+def install_pdf(tmp_path: Path, monkeypatch, scenario, pdf_id="pdf1") -> str:
+    """Copy a scenario's PDF where read_coa looks, and stub the model tools."""
+    monkeypatch.setenv("STATE_DIR", str(tmp_path))
+    (tmp_path / "uploads").mkdir(exist_ok=True)
+    shutil.copy(
+        DATASET_DIR / "coa" / scenario.file, tmp_path / "uploads" / f"{pdf_id}.pdf"
+    )
+    stub_model_tools(monkeypatch, scenario)
     return pdf_id
 
 
@@ -152,6 +157,18 @@ def ideal_8() -> tuple[list[AIMessage], list[AIMessage]]:
         call("submit", summary="Paracetamol API, all in spec, supplier approved."),
     ]
     return before, after
+
+
+def runner_for(script, budget=12):
+    """A Runner whose agent plays `script` (a list of AI messages)."""
+    from langgraph.checkpoint.memory import InMemorySaver
+
+    from agent.orchestrator import build_graph
+    from controller.runs import Runner
+
+    return Runner(
+        build_graph(FakeChat(script=list(script)), InMemorySaver(), budget=budget)
+    )
 
 
 class FakeChat(BaseChatModel):

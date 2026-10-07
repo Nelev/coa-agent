@@ -1,14 +1,12 @@
 import pytest
-from langgraph.checkpoint.memory import InMemorySaver
 
-from agent.orchestrator import build_graph
-from controller.runs import Runner
 from dataset.eval.run_scenario import expected_answer, install, run_one
 from dataset.eval.scoring import expected_rows, score_agent, tool_calls
 from dataset.ground_truth import truth
 from dataset.make_data import scenarios
 from schema import Draft, ToolCall
-from tests.helpers import FakeChat, call, head, ideal, ideal_8
+from tests.helpers import call, head, ideal, ideal_8
+from tests.helpers import runner_for as runner
 from tools import ai_tools
 
 
@@ -27,10 +25,6 @@ def stubbed(db, monkeypatch):
     monkeypatch.setattr(ai_tools, "read_coa", fake_read)
     monkeypatch.setattr(ai_tools, "draft_supplier_request", fake_draft)
     return current
-
-
-def runner(script):
-    return Runner(build_graph(FakeChat(script=script), InMemorySaver()))
 
 
 @pytest.mark.parametrize("n", range(1, 9))

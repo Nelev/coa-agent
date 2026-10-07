@@ -27,7 +27,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-DATASET_DIR = Path(__file__).resolve().parent
+from tools.data import DATASET_DIR
 
 # ---------------------------------------------------------------------------
 # Reference data (what the code tools read)
@@ -608,6 +608,7 @@ def generate(out: Path = DATASET_DIR) -> None:
             "must_call",
             "expects_question",
             "answer",
+            "title",
         ],
         [
             [
@@ -617,6 +618,7 @@ def generate(out: Path = DATASET_DIR) -> None:
                 s.must_call,
                 str(s.expects_question).lower(),
                 s.answer,
+                s.planted,
             ]
             for s in scs
         ],

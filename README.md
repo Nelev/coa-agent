@@ -2,7 +2,7 @@
 
 A 5-day proof of concept: on 8 synthetic Certificates of Analysis, an AI agent picks a different path for each problem, investigates, explains and drafts follow-ups, while the pass/fail decision stays with deterministic rules. Nothing leaves the system without a human. Demo on synthetic data; not a GMP system.
 
-Status: days 1–3 built and run live once: with `openai/gpt-4.1-mini`, `read_coa` extracts all 8 PDFs correctly and the agent reached the expected status on all 8 scenarios in two full runs (the baseline gets 6 of 8). `openai/gpt-4.1` itself has not run: it is blocked by a guardrail in the OpenRouter workspace used so far (see Environment). Stability over 3 runs, cost tables and the demo are day 5. C9–C11 are skeletons; see `SCAFFOLD.md` and the plan for the schedule.
+Status: days 1–4 built. The dataset, tools, decision rules, agent graph, trace, baseline and runner (days 1–3) are now behind a FastAPI API with a live event stream and a Next.js page (day 4): pick or upload a CoA, watch the agent's steps arrive, answer its question, and see the baseline beside it. Run live in the browser with `openai/gpt-4.1-mini` (scenarios 2 and 8 end to end); `openai/gpt-4.1` itself has not run, because a guardrail in the OpenRouter workspace used so far blocks it (see Environment). Stability over 3 runs, the cost table and the demo script are day 5 (`evaluate.py` is still a skeleton).
 
 ## Setup
 
@@ -45,18 +45,23 @@ The baseline runs the same tools in a fixed order, including `check_supplier`. W
 
 ## API surface
 
-| Method | Path                | Purpose                                   |
-| ------ | ------------------- | ----------------------------------------- |
-| GET    | `/health`           | Liveness (implemented)                    |
-| POST   | `/runs`             | Upload PDF, start agent run, `run_id`     |
-| POST   | `/baseline`         | Run the baseline pipeline on the same PDF |
-| GET    | `/runs/{id}`        | Phase, findings, summary, draft, trace    |
-| GET    | `/runs/{id}/events` | Server-sent events, one per step          |
-| POST   | `/runs/{id}/answer` | Answer an `ask_user` question             |
+| Method | Path                | Purpose                                                                                         |
+| ------ | ------------------- | ----------------------------------------------------------------------------------------------- |
+| GET    | `/health`           | Liveness                                                                                        |
+| GET    | `/samples`          | The 8 sample CoAs: file, scenario, title                                                        |
+| POST   | `/runs`             | Multipart `file` (a PDF) or form `sample` (a name from `/samples`); stores it, starts the agent |
+| POST   | `/baseline`         | `{pdf_id}`: runs the fixed pipeline on a PDF already uploaded; waits for it                     |
+| GET    | `/runs/{id}`        | Phase, pending question, result (with its draft) and every step                                 |
+| GET    | `/runs/{id}/events` | Server-sent events: `step` (id = seq), `phase`, then `done`; resumes after `Last-Event-ID`      |
+| POST   | `/runs/{id}/answer` | `{answer}`: resumes a run that is waiting on `ask_user` (409 if it is not)                      |
+| GET    | `/pdfs/{pdf_id}`    | The stored PDF, for the viewer                                                                  |
+
+Errors: 404 unknown run, PDF or sample; 409 answer to a run that is not waiting; 413 file over 10 MB; 415 not a PDF; 503 no model configured (no `OPENROUTER_API_KEY`) or the provider is down. The API starts without a key so the UI and earlier traces still work; starting a run answers 503 until it is set. The UI proxies everything (Server Actions, plus route handlers for `/runs/{id}/events` and `/pdfs/{id}`), so the browser never calls the API and there is no CORS.
 
 ## Known gaps
 
-- API routes (beyond `/health`), UI panels and `evaluate.py` are unimplemented.
+- `evaluate.py` (3 runs per scenario, the score table, cost) is a skeleton; the demo script has not been rehearsed.
+- No authentication, one shared run store: anyone who can reach the UI can read any run. Fine for a laptop demo on synthetic data.
 - Only `gpt-4.1-mini` has been run live, twice over all 8; the prompt was tuned against it (not for `gpt-4.1` or other models). Re-run `check_extraction` and `run_scenario` after any change of model or prompt.
 
 ## Running scenarios

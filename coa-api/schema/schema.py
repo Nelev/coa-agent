@@ -231,6 +231,9 @@ class RunResult(BaseModel):
     findings: list[Finding] = []
     summary: str
     draft_id: str | None = None
+    # The draft `draft_id` points at, so a result is complete on its own: the
+    # event stream and GET /runs/{id} carry it without a second lookup.
+    draft: Draft | None = None
 
     @field_validator("summary")
     @classmethod
@@ -248,6 +251,39 @@ class BaselineResult(BaseModel):
     summary: str
 
 
+class AnswerBody(BaseModel):
+    answer: str = Field(min_length=1, max_length=500)
+
+
+class BaselineBody(BaseModel):
+    pdf_id: str
+
+
+class Sample(BaseModel):
+    file: str
+    scenario: int
+    title: str
+
+
+class Question(BaseModel):
+    """What ask_user asks: shown to the user, answered with POST .../answer."""
+
+    question: str
+    options: list[str] = []
+
+
+class RunOut(BaseModel):
+    """GET /runs/{id}: where a run is, its result and every step."""
+
+    id: str
+    kind: Literal["agent", "baseline"]
+    pdf_id: str
+    phase: RunPhase
+    pending_question: Question | None = None
+    result: RunResult | BaselineResult | None = None
+    steps: list[ToolCall] = []
+
+
 class NotFound(Exception):
     def __init__(self, detail: str = "Not found"):
         super().__init__(detail)
@@ -261,6 +297,14 @@ class AgentUnavailable(Exception):
 class ToolInputError(ValueError):
     """A tool was called in a state it can't act on. The message goes back to
     the agent, so say what to do first."""
+
+
+class Conflict(Exception):
+    """The request is valid but not for the run's current phase."""
+
+    def __init__(self, detail: str):
+        super().__init__(detail)
+        self.detail = detail
 
 
 class FileTooLarge(Exception):

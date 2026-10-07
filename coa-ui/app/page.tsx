@@ -1,13 +1,20 @@
-// Day 4: upload panel, PDF viewer, live trace, baseline column, result card,
-// answer box. The page is a Server Component; the client pieces live in
-// components/.
-export default function Home() {
-  return (
-    <main className="mx-auto max-w-5xl p-6">
-      <h1 className="text-2xl font-semibold">CoA agent</h1>
-      <p className="text-muted-foreground mt-2">
-        Upload a Certificate of Analysis to start a run.
-      </p>
-    </main>
-  )
+import { listSamples } from "@/api/runs"
+import { Workbench } from "@/components/workbench"
+import type { Sample } from "@/model/Run"
+
+// Rendered per request: the sample list comes from the API.
+export const dynamic = "force-dynamic"
+
+export default async function Home() {
+  let samples: Sample[] = []
+  let loadError: string | undefined
+
+  try {
+    samples = await listSamples()
+  } catch {
+    loadError =
+      "The API is not reachable, so the sample CoAs could not be listed."
+  }
+
+  return <Workbench samples={samples} loadError={loadError} />
 }

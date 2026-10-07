@@ -5,6 +5,10 @@ import { afterEach, beforeEach, vi } from "vitest"
 
 import { useRunStore } from "@/store/run-store"
 
+// jsdom has no layout, so no scrolling: the trace list scrolls its newest step
+// into view, and that is all the tests need to know about it.
+Element.prototype.scrollIntoView ??= () => {}
+
 beforeEach(() => {
   // The zustand store is a module singleton, so state survives between tests
   // and whichever ran first would silently decide the result of the next.

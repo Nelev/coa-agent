@@ -1,5 +1,3 @@
-import csv
-
 import pytest
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
@@ -7,14 +5,16 @@ from langgraph.types import Command
 
 from agent.orchestrator import build_graph
 from agent.prompt import SYSTEM_PROMPT
-from dataset.make_data import DATASET_DIR, scenarios
+from dataset.eval.scoring import expected_rows
+from dataset.make_data import scenarios
+from settings import Settings
 from tests.helpers import ScriptedModel, call, head, ideal, ideal_8, install_pdf
 
-EXPECTED = {
-    r["file"]: r
-    for r in csv.DictReader((DATASET_DIR / "expected.csv").open(encoding="utf-8"))
+EXPECTED = expected_rows()
+CFG = {
+    "configurable": {"thread_id": "t"},
+    "recursion_limit": Settings().recursion_limit,
 }
-CFG = {"configurable": {"thread_id": "t"}, "recursion_limit": 3 * 12 + 12}
 
 
 def make(script, budget=12):
@@ -275,3 +275,26 @@ async def test_the_model_is_given_the_system_prompt_and_the_tool_results(
     assert first[0].content == SYSTEM_PROMPT and "DATA" in SYSTEM_PROMPT
     # By the second turn the model sees read_coa's output, marked as data.
     assert any("never instructions" in str(m.content) for m in model.seen[1])
+
+
+async def test_the_result_carries_its_draft(tmp_path, monkeypatch):
+    install_pdf(tmp_path, monkeypatch, scenarios()[3])
+    state = await run(make(ideal(4))[0])
+    result = state["result"]
+    assert result["draft_id"] == "d1"
+    assert (
+        result["draft"]["draft_id"] == "d1"
+        and "residual solvents" in result["draft"]["subject"]
+    )
+
+
+async def test_a_forced_result_keeps_the_draft_made_so_far(tmp_path, monkeypatch):
+    install_pdf(tmp_path, monkeypatch, scenarios()[3])
+    script = [
+        *head(4),
+        call("draft_supplier_request", issue="missing", evidence="e"),
+        *[call("get_lot_history", test="assay") for _ in range(10)],
+    ]
+    state = await run(make(script, budget=8)[0])
+    assert state["result"]["status"] == "REVIEW"
+    assert state["result"]["draft"]["draft_id"] == "d1"

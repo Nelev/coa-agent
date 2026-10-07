@@ -15,7 +15,7 @@ from langchain_core.callbacks import get_usage_metadata_callback
 import tracing
 from schema import AgentUnavailable, BaselineResult, ToolInputError
 from tools import ai_tools, code_tools
-from tools.rules import decide_status
+from tools.rules import decide_status, describe_findings
 
 
 async def run_baseline(
@@ -78,7 +78,7 @@ async def run_baseline(
     decision = decide_status(
         spec, supplier, grounded=all(r.grounded for r in norm.results)
     )
-    found = [f"{f.test} ({f.kind})" for f in decision.findings]
+    found = describe_findings(decision.findings)
     summary = (
         f"{len(found)} finding(s): {', '.join(found)}." if found else "No findings."
     )

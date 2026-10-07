@@ -1,11 +1,10 @@
 """Compare one run with its row of expected.csv. Shared by the command-line
 runner and evaluate.py, so a scenario is judged the same way everywhere."""
 
-import csv
 from dataclasses import dataclass, field
 
-from dataset.make_data import DATASET_DIR
 from schema import ToolCall
+from tools.data import load
 
 MAX_CALLS = 12
 CLEAN_CALLS = 6
@@ -13,8 +12,7 @@ CLEAN_CALLS = 6
 
 def expected_rows() -> dict[str, dict[str, str]]:
     """expected.csv by file name."""
-    with (DATASET_DIR / "expected.csv").open(newline="", encoding="utf-8") as f:
-        return {r["file"]: r for r in csv.DictReader(f)}
+    return {r["file"]: r for r in load("expected")}
 
 
 def tool_calls(steps: list[ToolCall]) -> list[str]:

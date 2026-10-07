@@ -2,28 +2,20 @@ import json
 
 import pytest
 from langchain_core.runnables import RunnableLambda
-from langgraph.checkpoint.memory import InMemorySaver
 
 import tracing
-from agent.orchestrator import build_graph
-from controller.runs import Runner
 from dataset.ground_truth import truth
 from dataset.make_data import scenarios
 from schema import AgentUnavailable
-from tests.helpers import FakeChat, call, head, ideal, ideal_8, install_pdf
+from tests.helpers import FakeChat, call, head, ideal, ideal_8, install_pdf, runner_for
 from tools import ai_tools
-
-
-def runner_for(script, budget=12):
-    model = FakeChat(script=script)
-    return Runner(build_graph(model, InMemorySaver(), budget=budget)), model
 
 
 async def test_scenario_2_trace_has_a_step_per_call_with_reasoning_and_tokens(
     db, monkeypatch
 ):
     install_pdf(db, monkeypatch, scenarios()[1])
-    runner, _ = runner_for(ideal(2))
+    runner = runner_for(ideal(2))
     outcome = await runner.start("r1", "pdf1")
 
     assert outcome.phase == "done" and outcome.result["status"] == "REVIEW"
@@ -58,7 +50,7 @@ async def test_a_tools_nested_model_call_is_added_to_its_step(db, monkeypatch):
         return truth(scenarios()[0])
 
     monkeypatch.setattr(ai_tools, "read_coa", read_with_a_model)
-    runner, _ = runner_for(ideal(1))
+    runner = runner_for(ideal(1))
     await runner.start("r1", "pdf1")
     first, second = (await tracing.tail("r1"))[:2]
     assert (first.tokens_in, first.tokens_out) == (
@@ -70,7 +62,7 @@ async def test_a_tools_nested_model_call_is_added_to_its_step(db, monkeypatch):
 
 async def test_refused_calls_are_traced_as_errors(db, monkeypatch):
     install_pdf(db, monkeypatch, scenarios()[0])
-    runner, _ = runner_for([call("normalize"), *ideal(1)])
+    runner = runner_for([call("normalize"), *ideal(1)])
     await runner.start("r1", "pdf1")
     first = (await tracing.tail("r1"))[0]
     assert (
@@ -85,7 +77,7 @@ async def test_scenario_8_waits_then_resumes_and_records_both_sides_of_the_quest
 ):
     install_pdf(db, monkeypatch, scenarios()[7])
     before, after = ideal_8()
-    runner, _ = runner_for(before + after)
+    runner = runner_for(before + after)
 
     waiting = await runner.start("r1", "pdf1")
     assert waiting.phase == "waiting" and waiting.result is None
@@ -110,7 +102,7 @@ async def test_a_reply_without_a_tool_is_a_step_with_no_tool(db, monkeypatch):
     from langchain_core.messages import AIMessage
 
     install_pdf(db, monkeypatch, scenarios()[0])
-    runner, _ = runner_for(
+    runner = runner_for(
         [*head(1), AIMessage(content="Looks fine."), call("submit", summary="ok")]
     )
     await runner.start("r1", "pdf1")
@@ -120,7 +112,7 @@ async def test_a_reply_without_a_tool_is_a_step_with_no_tool(db, monkeypatch):
 
 async def test_budget_exhaustion_is_traced_and_stored_as_review(db, monkeypatch):
     install_pdf(db, monkeypatch, scenarios()[0])
-    runner, _ = runner_for(
+    runner = runner_for(
         [*head(1)[:-1], *[call("get_lot_history", test="assay") for _ in range(20)]]
     )
     outcome = await runner.start("r1", "pdf1")
@@ -136,7 +128,7 @@ async def test_provider_outage_ends_the_run_as_an_error(db, monkeypatch):
         raise AgentUnavailable
 
     monkeypatch.setattr(ai_tools, "read_coa", down)
-    runner, _ = runner_for([call("read_coa")])
+    runner = runner_for([call("read_coa")])
     outcome = await runner.start("r1", "pdf1")
     assert outcome.phase == "error" and "AgentUnavailable" in outcome.error
     assert (await tracing.get_run("r1")).phase == "error"
@@ -146,7 +138,7 @@ async def test_provider_outage_ends_the_run_as_an_error(db, monkeypatch):
 async def test_the_baseline_runs_through_the_same_trace(db, monkeypatch):
     s = scenarios()[1]
     install_pdf(db, monkeypatch, s)
-    runner, _ = runner_for([])
+    runner = runner_for([])
     outcome = await runner.baseline("b1", "pdf1")
     assert outcome.result["status"] == "FAIL"
     assert (await tracing.get_run("b1")).kind == "baseline"
@@ -157,7 +149,36 @@ async def test_the_baseline_runs_through_the_same_trace(db, monkeypatch):
 async def test_every_non_interactive_scenario_through_the_runner(n, db, monkeypatch):
     s = scenarios()[n - 1]
     install_pdf(db, monkeypatch, s)
-    runner, _ = runner_for(ideal(n))
+    runner = runner_for(ideal(n))
     outcome = await runner.start(f"r{n}", "pdf1")
     expected = {1: "PASS", 3: "FAIL", 4: "FAIL", 5: "FAIL", 6: "PASS", 7: "PASS"}[n]
     assert outcome.result["status"] == expected
+
+
+async def test_a_baseline_that_crashes_ends_the_run_as_an_error(db, monkeypatch):
+    import baseline
+
+    async def boom(pdf_id, *, run_id=None, reader=None):
+        raise ValueError("boom")
+
+    monkeypatch.setattr(baseline, "run_baseline", boom)
+    outcome = await runner_for([]).baseline("b1", "pdf1")
+    assert outcome.phase == "error" and outcome.error == "ValueError: boom"
+    run = await tracing.get_run("b1")
+    assert run.phase == "error"
+    assert (await tracing.tail("b1"))[-1].output == "Error: ValueError: boom"
+
+
+async def test_any_unexpected_failure_in_the_graph_is_recorded_as_one_error(
+    db, monkeypatch
+):
+    install_pdf(db, monkeypatch, scenarios()[0])
+    runner = runner_for([call("read_coa")])
+
+    async def explode(*args, **kwargs):
+        raise RuntimeError("graph bug")
+
+    monkeypatch.setattr(runner.graph, "ainvoke", explode)
+    outcome = await runner.start("r1", "pdf1")
+    assert outcome.error == "RuntimeError: graph bug"
+    assert (await tracing.get_run("r1")).phase == "error"

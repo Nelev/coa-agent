@@ -26,6 +26,11 @@ from schema import (
 CONFIDENCE_THRESHOLD = 0.8
 
 
+def describe_findings(findings: list[Finding]) -> list[str]:
+    """Findings as short labels, e.g. "assay (oos)", for summaries."""
+    return [f"{f.test} ({f.kind})" for f in findings]
+
+
 def decide_status(
     spec_check: SpecCheck | None,
     supplier_check: SupplierCheck | None,

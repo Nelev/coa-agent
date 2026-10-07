@@ -12,8 +12,6 @@ the run with interrupt(); the caller resumes it with Command(resume=answer).
 `recursion_limit` is a backstop only.
 """
 
-from functools import lru_cache
-
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langgraph.graph import END, START, StateGraph
 
@@ -114,10 +112,3 @@ def build_graph(model, checkpointer=None, budget: int | None = None):
     g.add_conditional_edges("account", after_account, ["agent", "force_submit", END])
     g.add_edge("force_submit", END)
     return g.compile(checkpointer=checkpointer)
-
-
-@lru_cache
-def build_agent(checkpointer=None):
-    """The compiled graph on the real model, built on first call rather than at
-    import, so an import never needs OPENROUTER_API_KEY."""
-    return build_graph(bind_model(), checkpointer)

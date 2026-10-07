@@ -23,7 +23,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 import tracing
-from controller.runs import Runner
+from controller.runs import Runner, open_runner
+from database import dispose_engine, init_engine
 from dataset.eval.scoring import ScenarioRun, expected_rows, score_agent, tool_calls
 from dataset.make_data import DATASET_DIR, Scenario, scenarios
 from settings import get_settings
@@ -120,9 +121,6 @@ async def main(argv: list[str]) -> int:
     if not settings.openrouter_api_key:
         print("OPENROUTER_API_KEY is not set (coa-api/.env).")
         return 2
-
-    from controller.runs import open_runner  # after the env is set
-    from database import dispose_engine, init_engine
 
     expected = expected_rows()
     chosen = [s for s in scenarios() if not args.numbers or s.n in args.numbers]

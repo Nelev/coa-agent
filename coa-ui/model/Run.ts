@@ -1,6 +1,4 @@
-export type Status = "PASS" | "REVIEW" | "FAIL"
-// The baseline can also fail to run at all.
-export type BaselineStatus = Status | "ERROR"
+export type BaselineStatus = "PASS" | "REVIEW" | "FAIL" | "ERROR"
 // Where a run is in its life. "waiting" is the agent asking the user.
 export type RunPhase = "running" | "waiting" | "done" | "error"
 
@@ -23,17 +21,32 @@ export interface Question {
   options: string[]
 }
 
+// A drafted supplier request. Shown, never sent.
+export interface Draft {
+  subject: string
+  body: string
+}
+
+// The outcome of a run. The baseline's has no draft.
 export interface RunResult {
-  status: Status | BaselineStatus
+  status: BaselineStatus
   findings: Finding[]
   summary: string
-  draftId: string | null
+  draft: Draft | null
 }
 
 export interface Run {
   id: string
   kind: "agent" | "baseline"
+  pdfId: string
   phase: RunPhase
   pendingQuestion: Question | null
   result: RunResult | null
+}
+
+// One of the 8 sample CoAs the API offers.
+export interface Sample {
+  file: string
+  scenario: number
+  title: string
 }

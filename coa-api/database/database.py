@@ -43,9 +43,7 @@ async def dispose_engine() -> None:
 
 
 async def get_session() -> AsyncGenerator[AsyncSession]:
-    if _sessions is None:
-        raise RuntimeError("init_engine() has not run")
-    async with _sessions() as session:
+    async with session_scope() as session:
         yield session
 
 

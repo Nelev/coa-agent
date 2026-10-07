@@ -8,6 +8,7 @@ Both take an optional `model` (anything with an async `ainvoke`), which is how
 the tests run them without a network.
 """
 
+import asyncio
 import base64
 import re
 import uuid
@@ -156,7 +157,7 @@ def _read_messages(pages: list[Page]) -> list:
 
 async def read_coa(path: Path, *, model=None) -> Extraction:
     """Extract every field with page, source text and confidence (FR2)."""
-    pages = render_pages(path)
+    pages = await asyncio.to_thread(render_pages, path)
     try:
         if model is None:
             model = chat_model(get_settings().read_model).with_structured_output(

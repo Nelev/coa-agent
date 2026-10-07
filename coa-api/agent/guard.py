@@ -10,6 +10,7 @@ from agent.state import RunState
 from schema import (
     MAX_SUMMARY_WORDS,
     Decision,
+    Draft,
     ErrorClaim,
     LotHistory,
     NormalizedResult,
@@ -18,7 +19,12 @@ from schema import (
     SupplierCheck,
     ToolInputError,
 )
-from tools.rules import decide_status
+from tools.rules import decide_status, describe_findings
+
+
+def _draft(state: RunState, draft_id: str | None) -> Draft | None:
+    drafts = state.get("drafts") or {}
+    return Draft(**drafts[draft_id]) if draft_id in drafts else None
 
 
 def decide(state: RunState, claims: list[ErrorClaim] | None = None) -> Decision:
@@ -64,6 +70,7 @@ def build_result(
             findings=decision.findings,
             summary=summary,
             draft_id=draft_id,
+            draft=_draft(state, draft_id),
         ),
         decision,
     )
@@ -73,7 +80,7 @@ def forced_result(state: RunState, reason: str) -> RunResult:
     """What the system submits when the agent can't finish: always REVIEW, with
     whatever the checks found so far, so nothing is lost and nothing passes."""
     decision = decide(state)
-    found = [f"{f.test} ({f.kind})" for f in decision.findings]
+    found = describe_findings(decision.findings)
     summary = f"The run ended without a decision: {reason}. A person must review."
     if found:
         summary += f" Findings so far: {', '.join(found)}."
@@ -82,4 +89,5 @@ def forced_result(state: RunState, reason: str) -> RunResult:
         findings=decision.findings,
         summary=summary,
         draft_id=state.get("draft_id"),
+        draft=_draft(state, state.get("draft_id")),
     )

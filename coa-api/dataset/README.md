@@ -31,10 +31,11 @@ Scenario 8's values are in spec for `MAT-001` and out of spec for `MAT-002` (ass
 
 ## `expected.csv`
 
-`file, expected_status, expected_findings, must_call, expects_question, answer`
+`file, expected_status, expected_findings, must_call, expects_question, answer, title`
 
 - `expected_status` is the **final** status. The plan's "WAITING" is a run phase: scenario 8 has `expects_question=true`, the evaluator answers with `answer` and compares the status after the resume.
 - `expected_findings` is `test:kind` joined with `;`, where kind is `oos` (out of spec), `missing` (required test absent) or `expired` (supplier approval). These are the check-level findings, before any `likely_coa_error` downgrade: scenario 2 is REVIEW with `assay:oos`.
+- `title` is the planted situation in a few words; the UI lists samples by it.
 - `must_call` lists tools that must appear in the agent's trace (e.g. `get_lot_history` for 2 and 3, `ask_user` for 8).
 
 ## Decisions taken on day 2

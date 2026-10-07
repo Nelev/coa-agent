@@ -42,7 +42,7 @@ READ_NOTICE = (
 
 
 def _done(
-    state: RunState, name: str, call_id: str, payload: BaseModel | dict | str, **updates
+    name: str, call_id: str, payload: BaseModel | dict | str, **updates
 ) -> Command:
     """The tool's answer for the model, plus what it wrote to the state. Calls
     are counted by the graph (orchestrator.account), so a refused one counts."""
@@ -82,7 +82,6 @@ async def read_coa(state: State, tool_call_id: CallId) -> Command:
     extraction = await ai_tools.read_coa(ai_tools.pdf_path(state["pdf_id"]))
     body = {"notice": READ_NOTICE, **extraction.model_dump(mode="json")}
     return _done(
-        state,
         "read_coa",
         tool_call_id,
         body,
@@ -112,7 +111,7 @@ def identify_material(
         if result.material_code != state.get("material_code"):
             # Another material: earlier checks were against the wrong spec.
             updates |= {"spec_check": None, "supplier_check": None, "lot_history": {}}
-    return _done(state, "identify_material", tool_call_id, result, **updates)
+    return _done("identify_material", tool_call_id, result, **updates)
 
 
 @tool
@@ -125,7 +124,6 @@ def normalize(state: State, tool_call_id: CallId) -> Command:
     results = [ExtractedResult(**r) for r in extraction["results"]]
     result = code_tools.normalize(results)
     return _done(
-        state,
         "normalize",
         tool_call_id,
         result,
@@ -149,7 +147,6 @@ def check_spec(state: State, tool_call_id: CallId) -> Command:
         material, [NormalizedResult(**r) for r in normalized]
     )
     return _done(
-        state,
         "check_spec",
         tool_call_id,
         result,
@@ -165,7 +162,6 @@ def check_supplier(state: State, tool_call_id: CallId) -> Command:
     material = _need(state, "material_code", "identify_material")
     result = code_tools.check_supplier(supplier, material)
     return _done(
-        state,
         "check_supplier",
         tool_call_id,
         result,
@@ -185,7 +181,7 @@ def get_lot_history(test: str, state: State, tool_call_id: CallId) -> Command:
     current = next((r["value"] for r in normalized if r["test"] == test), None)
     result = code_tools.get_lot_history(supplier, material, test, current_value=current)
     history = {**state.get("lot_history", {}), test: result.model_dump(mode="json")}
-    return _done(state, "get_lot_history", tool_call_id, result, lot_history=history)
+    return _done("get_lot_history", tool_call_id, result, lot_history=history)
 
 
 # --- drafts and questions -----------------------------------------------------
@@ -206,7 +202,6 @@ async def draft_supplier_request(
         extraction["supplier"], issue, evidence
     )
     return _done(
-        state,
         "draft_supplier_request",
         tool_call_id,
         draft,
@@ -228,7 +223,7 @@ def ask_user(
     # Nothing before this line may have a side effect: on resume the node runs
     # again from the top and interrupt() returns the answer.
     answer = interrupt({"question": question, "options": options})
-    return _done(state, "ask_user", tool_call_id, str(answer))
+    return _done("ask_user", tool_call_id, str(answer))
 
 
 @tool
@@ -254,7 +249,6 @@ def submit(
         "reasons": decision.reasons,
     }
     return _done(
-        state,
         "submit",
         tool_call_id,
         body,

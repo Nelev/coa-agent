@@ -9,7 +9,7 @@ a step of its own with no tool.
 
 import json
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from uuid import UUID
 
 from langchain_core.callbacks import AsyncCallbackHandler
@@ -36,7 +36,6 @@ class _ToolRun:
     reasoning: str
     tokens_in: int
     tokens_out: int
-    nested: list[UUID] = field(default_factory=list)
 
 
 def _text(content) -> str:
