@@ -1,0 +1,63 @@
+[project]
+name = "coa-api"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "aiosqlite>=0.22.1",
+    "fastapi[standard]>=0.142.3",
+    "langchain>=1.4.3",
+    "langchain-openai>=1.6.7",
+    "langgraph>=1.2.14",
+    "langgraph-checkpoint-sqlite>=3.1.1",
+    "pydantic-settings>=2.15.0",
+    "pymupdf>=1.28.2",
+    "python-dotenv>=1.2.4",
+    "python-multipart>=0.0.32",
+    "sqlalchemy[asyncio]>=2.1.4",
+]
+
+[dependency-groups]
+dev = [
+    "pandas>=3.0.6",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "reportlab>=5.0.1",
+    "ruff>=0.16.10",
+]
+
+[tool.pytest.ini_options]
+# auto: async test functions run without a per-test marker.
+asyncio_mode = "auto"
+testpaths = ["tests"]
+# There is no [build-system], so uv does not install this project into the
+# venv and imports resolve against the working directory. Put the package
+# root on sys.path so tests import modules the same way the app does.
+pythonpath = ["."]
+
+[tool.ruff.lint]
+# Selected explicitly rather than relying on defaults: ruff's default rule set
+# changes between releases, and pinning the selection keeps results stable.
+select = [
+    "F",     # pyflakes
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "I",     # import sorting
+    "UP",    # pyupgrade
+    "B",     # bugbear
+    "ASYNC", # blocking calls inside async functions
+    "S",     # security (bandit)
+    "SIM",   # simplifications
+    "RUF",   # ruff-specific
+]
+ignore = [
+    "E501", # line length is the formatter's job
+]
+
+[tool.ruff.lint.per-file-ignores]
+# S101 flags `assert`, which is the whole point of a test; S105/S106 flag
+# hardcoded passwords, which is what a credential fixture is.
+"tests/*.py" = ["S101", "S105", "S106"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

@@ -1,0 +1,30 @@
+# The whole demo: `docker compose up`. The only external call is OpenRouter.
+# Credentials come from coa-api/.env (copy coa-api/.env.example).
+services:
+  api:
+    build: ./coa-api
+    env_file: ./coa-api/.env
+    environment:
+      STATE_DIR: /state
+    volumes:
+      # Named, so runs and uploads survive `down`; only `down -v` deletes them.
+      - coa-state:/state
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      retries: 10
+
+  ui:
+    build: ./coa-ui
+    environment:
+      API_BASE_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${UI_PORT:-3000}:3000"
+
+volumes:
+  coa-state:
