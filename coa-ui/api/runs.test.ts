@@ -21,6 +21,7 @@ describe("api/runs", () => {
     expect(run.pendingQuestion).toBeNull()
     expect(run.result?.draftId).toBe("d1")
     expect(run.result?.findings[0]).toMatchObject({
+      kind: "oos",
       specRef: "SPEC-1",
       likelyCoaError: true,
     })

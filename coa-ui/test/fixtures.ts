@@ -11,6 +11,7 @@ export const runResponse = {
     findings: [
       {
         test: "assay",
+        kind: "oos",
         value: 9.85,
         limit: "98.0-102.0 %",
         severity: "fail",

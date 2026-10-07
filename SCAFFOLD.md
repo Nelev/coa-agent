@@ -176,3 +176,12 @@ coa/
 - Root: `docker-compose.yml`, both Dockerfiles, `CLAUDE.md`, `README.md`.
 
 Not built (plan days 1–5): data generator, tools, `decide_status`, orchestrator, API routes, UI panels, `evaluate.py`.
+
+## 10. Day 2 (tools)
+
+- `schema/`: tool input and output types; findings carry a `kind`; `ExtractedResult.result_text` holds the printed result so qualitative tests can be judged.
+- `tools/code_tools.py`, `tools/rules.py` (`decide_status`: the model's status is not an input; a FAIL becomes REVIEW only when a claim is backed by an outlier in the run's own lot history), `tools/ai_tools.py` (`read_coa` with grounding against the text layer, `draft_supplier_request`), `tools/llm.py` (OpenRouter client).
+- `agent/registry.py`: eight `@tool`s fed from `RunState` through `InjectedState` (the model types only names, a test, an issue). `submit` and its guard are day 3.
+- Tests: 152 (was 45). The deterministic path reproduces `expected.csv` for all 8 scenarios without a model, and the registry tests run the tools through a `ToolNode` graph with a checkpointer, including `ask_user` pausing and resuming, which was the main day-3 risk.
+- Not verified: `read_coa` against the real model. `uv run python -m dataset.eval.check_extraction` does it once `OPENROUTER_API_KEY` is set.
+- Open for day 3: count failed tool calls toward the budget (a refused call currently returns an error message without updating `calls_used`), and the two-failures-of-one-tool rule.

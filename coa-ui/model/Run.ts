@@ -4,8 +4,12 @@ export type BaselineStatus = Status | "ERROR"
 // Where a run is in its life. "waiting" is the agent asking the user.
 export type RunPhase = "running" | "waiting" | "done" | "error"
 
+export type FindingKind =
+  "oos" | "missing" | "expired" | "unapproved" | "unreadable"
+
 export interface Finding {
   test: string
+  kind: FindingKind
   value: number | null
   limit: string
   severity: "fail" | "review"

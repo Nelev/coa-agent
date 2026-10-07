@@ -37,9 +37,9 @@ Scenario 8's values are in spec for `MAT-001` and out of spec for `MAT-002` (ass
 - `expected_findings` is `test:kind` joined with `;`, where kind is `oos` (out of spec), `missing` (required test absent) or `expired` (supplier approval). These are the check-level findings, before any `likely_coa_error` downgrade: scenario 2 is REVIEW with `assay:oos`.
 - `must_call` lists tools that must appear in the agent's trace (e.g. `get_lot_history` for 2 and 3, `ask_user` for 8).
 
-## Open points for day 2
+## Decisions taken on day 2
 
-- **Identification is qualitative.** `spec.csv` has no limits for it; `check_spec` has to decide what a pass is (the CoA says "Conforms"). `Extraction.value` is a float, so the text lives in `source_text`.
-- **Scenario 6 and the baseline.** The plan wants `LOD` and `ppm` in `aliases.csv` _and_ the baseline to fail scenario 6 with the same `normalize`. Both can't hold: with these aliases the baseline normalizes scenario 6 correctly. The data follows the plan's aliases; `evaluate.py` will report what the baseline really does. The agent's remaining edge in 6 is explaining each mapping.
-- **Dates.** `SUP-001` and `SUP-002` are approved until 2028, so `check_supplier` stays correct until then. It should take the reference date as a parameter so tests don't depend on today.
-- **Unit tests** per conversion pair: `%→%`, `ppm→%` (×0.0001, impurities only), `ppm→ppm`, `%→ppm` (×10000), `mg/kg→ppm`.
+- **Identification is qualitative.** `spec.csv` has no limits for it. `check_spec` passes it only if the printed result (`result_text`) starts with conforms, complies or positive; "Does not conform" is out of spec.
+- **Scenario 6 and the baseline.** With `LOD` and `ppm` in `aliases.csv`, the baseline's `normalize` maps scenario 6 correctly, so it is expected to pass it. The agent's edge there is the explanation per mapping. `evaluate.py` will report what the baseline really gets.
+- **Dates.** `check_supplier` takes `as_of` and falls back to `REFERENCE_DATE`, then today. `SUP-001` and `SUP-002` are approved until 2028.
+- **Ground truth for extraction.** `dataset/ground_truth.py` builds what a perfect `read_coa` returns for each scenario; the unit tests use it, and `dataset.eval.check_extraction` compares the real model against it.

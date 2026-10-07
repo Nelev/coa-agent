@@ -19,6 +19,9 @@ MODULES = [
     "tools.code_tools",
     "tools.rules",
     "tools.data",
+    "tools.llm",
+    "dataset.ground_truth",
+    "dataset.eval.check_extraction",
     "dataset.make_data",
     "dataset.eval.evaluate",
 ]

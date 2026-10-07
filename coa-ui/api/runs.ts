@@ -1,6 +1,6 @@
 "use server"
 
-import type { Run, RunResult } from "@/model/Run"
+import type { FindingKind, Run, RunResult } from "@/model/Run"
 
 // Server Actions: the browser calls these, but the fetch runs on the Next
 // server, so the API's origin stays out of the bundle. Read at request time,
@@ -18,6 +18,7 @@ interface RunResponse {
     status: RunResult["status"]
     findings: {
       test: string
+      kind: FindingKind
       value: number | null
       limit: string
       severity: "fail" | "review"
@@ -41,6 +42,7 @@ export const toRun = (r: RunResponse): Run => ({
     draftId: r.result.draft_id,
     findings: r.result.findings.map((f) => ({
       test: f.test,
+      kind: f.kind,
       value: f.value,
       limit: f.limit,
       severity: f.severity,

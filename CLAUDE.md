@@ -14,6 +14,7 @@ uv run fastapi dev main.py                      # :8000, docs at /docs
 uv run ruff check . && uv run ruff format --check . && uv run pytest -q
 uv run pytest tests/test_main.py::test_name -q  # single test
 uv run python -m dataset.make_data              # regenerate the 8 PDFs and the CSVs
+uv run python -m dataset.eval.check_extraction  # billable: read_coa on the 8 PDFs vs ground truth
 uv run python -m dataset.eval.evaluate          # billable: 3 agent runs + 1 baseline per CoA
 ```
 
@@ -31,6 +32,7 @@ Whole demo: `docker compose up` (needs `coa-api/.env`). Pre-commit hook: `git co
 ## Architecture
 
 - **The agent reads, investigates and explains; only deterministic code decides pass or fail.** `tools/rules.py::decide_status` is the single place status is computed. `submit` ignores the model's proposed status, reads what actually ran from the run's state, and refuses a mismatch. A FAIL → REVIEW downgrade (`likely_coa_error`) is honoured only if `get_lot_history` output in state shows an outlier. Nothing is ever sent: drafts are stored and shown.
+- **Tools.** `tools/code_tools.py` (identify, normalize, check_spec, check_supplier, get_lot_history) are plain functions over `dataset/*.csv`; `tools/ai_tools.py` has `read_coa` (PyMuPDF text + page images to the model, then each row is grounded against the text layer: not found means confidence capped at 0.3 and a REVIEW) and `draft_supplier_request`. `agent/registry.py` wraps them as `@tool`s returning `Command`s that write `RunState`. Findings have a `kind` (`oos`, `missing`, `expired`, `unapproved`, `unreadable`); only `oos` can be downgraded, and `tools/code_tools.get_lot_history` decides what an outlier is (decimal shift or |z| ≥ 6), never the model. Qualitative identification passes only if the printed result starts with conforms, complies or positive.
 - **The model never chooses what it can't be trusted with.** `pdf_id`, previous tool outputs and the call count live in `agent/state.py::RunState` and are read from injected state, not tool arguments (the same pattern as medas's `record_id`). Text from the PDF is data: `Extraction` has no free-text field except `document_notes`, which the prompt marks untrusted.
 - **Layers, one way:** `controller → agent → tools`. `tools/` never imports `agent/`. `schema/schema.py` imports nothing from the project. ORM classes are in `model/`.
 - **Agent.** An explicit LangGraph `StateGraph` (not `create_agent`, unlike medas): `agent` → `tools` loop until `submit`, a router to `force_submit` (REVIEW) at the 12-call budget, `ask_user` via `interrupt()` resumed by `POST /runs/{id}/answer`, AsyncSqliteSaver checkpoints. Tools are bound with parallel calls off. Model `openai/gpt-4.1` through OpenRouter (`OPENROUTER_MODEL`, temperature 0). `build_agent()` is lazy and cached so importing never needs a key.
@@ -49,6 +51,7 @@ UI: Vitest + jsdom + Testing Library; `api/runs.test.ts` stubs `globalThis.fetch
 ## Gotchas
 
 - `coa-ui` uses a Next.js version newer than training data. Read `coa-ui/AGENTS.md` and `node_modules/next/dist/docs/` before writing Next code (`RouteContext`, async `params`).
+- Injected state is validated against `RunState`'s types, so a field a tool sets to `None` (to invalidate it) must allow `None`.
 - `interrupt()` re-runs its node from the top on resume, so `ask_user` must do nothing before it.
 - Pass `invariant=1` to reportlab so regenerating the PDFs doesn't change their bytes.
 - PyMuPDF is AGPL; fine for synthetic data, a decision before any real-data step.

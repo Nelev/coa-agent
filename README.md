@@ -2,7 +2,7 @@
 
 A 5-day proof of concept: on 8 synthetic Certificates of Analysis, an AI agent picks a different path for each problem, investigates, explains and drafts follow-ups, while the pass/fail decision stays with deterministic rules. Nothing leaves the system without a human. Demo on synthetic data; not a GMP system.
 
-Status: day 1 done (C1, the dataset). C2–C11 are skeletons; see `SCAFFOLD.md` and the plan for the schedule.
+Status: days 1–2 done (the dataset, schemas, code tools, decision rules, `read_coa`, `draft_supplier_request`, the tool registry). The live `read_coa` check on the 8 PDFs still needs an OpenRouter key. C6–C11 are skeletons; see `SCAFFOLD.md` and the plan for the schedule.
 
 ## Setup
 
@@ -56,5 +56,6 @@ The baseline runs the same tools in a fixed order, including `check_supplier`. W
 
 ## Known gaps
 
-- Everything beyond `/health` is unimplemented; the tools raise `NotImplementedError`.
+- The agent loop, `submit` guard, baseline, API routes (beyond `/health`), UI panels and `evaluate.py` are unimplemented.
+- `read_coa` has only been tested with a fake model; run `check_extraction` once the key is set.
 - Out of scope: login, a production database, real supplier data, mailbox, LIMS or ERP, validation documents, more than one material.

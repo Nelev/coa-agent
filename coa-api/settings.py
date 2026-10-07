@@ -1,5 +1,6 @@
 """Settings, read from the environment and .env. Cached; tests clear the cache."""
 
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
@@ -18,6 +19,12 @@ class Settings(BaseSettings):
     extraction_model: str | None = None
     tool_budget: int = 12
     state_dir: Path = Path("state")
+    # Pins "today" for supplier approval checks; unset means the real date.
+    reference_date: date | None = None
+
+    @property
+    def today(self) -> date:
+        return self.reference_date or date.today()
 
     @property
     def read_model(self) -> str:

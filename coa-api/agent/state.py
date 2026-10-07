@@ -14,15 +14,18 @@ class RunState(TypedDict):
     messages: Annotated[list, add_messages]
     # Server-set. read_coa takes no pdf argument; it reads this.
     pdf_id: str
-    # Written by tools as they run.
+    # Written by tools as they run. None means "invalidated by a later call";
+    # the injected state is validated against these types, so it must be allowed.
     extraction: NotRequired[dict]
     material_code: NotRequired[str]
     supplier_id: NotRequired[str]
-    normalized: NotRequired[list[dict]]
-    spec_check: NotRequired[dict]
-    supplier_check: NotRequired[dict]
+    normalized: NotRequired[list[dict] | None]
+    spec_check: NotRequired[dict | None]
+    supplier_check: NotRequired[dict | None]
     # test -> get_lot_history output; backs a likely_coa_error claim.
     lot_history: NotRequired[dict[str, dict]]
+    # draft_id -> Draft dump, and the one the final result will point at.
+    drafts: NotRequired[dict[str, dict]]
     draft_id: NotRequired[str]
     # Every tool call counts, including ask_user and refused submits.
     calls_used: NotRequired[int]
