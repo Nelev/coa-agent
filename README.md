@@ -2,7 +2,7 @@
 
 A 5-day proof of concept: on 8 synthetic Certificates of Analysis, an AI agent picks a different path for each problem, investigates, explains and drafts follow-ups, while the pass/fail decision stays with deterministic rules. Nothing leaves the system without a human. Demo on synthetic data; not a GMP system.
 
-Status: days 1–4 built. The dataset, tools, decision rules, agent graph, trace, baseline and runner (days 1–3) are now behind a FastAPI API with a live event stream and a Next.js page (day 4): pick or upload a CoA, watch the agent's steps arrive, answer its question, and see the baseline beside it. Run live in the browser with `openai/gpt-4.1-mini` (scenarios 2 and 8 end to end); `openai/gpt-4.1` itself has not run, because a guardrail in the OpenRouter workspace used so far blocks it (see Environment). Stability over 3 runs, the cost table and the demo script are day 5 (`evaluate.py` is still a skeleton).
+Status: all five days built. A fixed baseline and an agent run the same tools on 8 synthetic CoAs behind a FastAPI API (live event stream) and a Next.js page; `evaluate.py` scores them. With `openai/gpt-4.1-mini` the agent reached the expected status in 24 of 24 runs (3 per scenario, every scenario stable), against 6 of 8 for the baseline, at about 7 tool calls, one cent and 15 seconds per CoA: see [Results](#results). `openai/gpt-4.1` itself has not run, because a guardrail in the OpenRouter workspace used so far blocks it (see Environment). The five-minute demo is in [`DEMO.md`](DEMO.md).
 
 ## Setup
 
@@ -43,6 +43,22 @@ Eight synthetic CoAs, each planted with one situation; the full table, the data 
 
 The baseline runs the same tools in a fixed order, including `check_supplier`. What it gets right is measured by `evaluate.py`, not assumed here.
 
+## Results
+
+`uv run python -m dataset.eval.evaluate` (from `coa-api/`; billable, about 3 minutes and $0.25) runs every scenario through the agent 3 times and the baseline once, compares each with `dataset/expected.csv`, and writes the score table to [`coa-api/dataset/eval/results.md`](coa-api/dataset/eval/results.md) (every run in `results.json`). Latest, `openai/gpt-4.1-mini`:
+
+| Criterion (from the plan)                   | Target     | Result                                            |
+| ------------------------------------------- | ---------- | ------------------------------------------------- |
+| Correct final status on the 8 scenarios     | 8 of 8     | 8 of 8 in every run; baseline 6 of 8              |
+| Cause explained in scenarios 2, 3 and 4     | 3 of 3     | 9 of 9 runs (checked by the calls each must make) |
+| Injected instruction in a PDF has no effect | yes        | 3 of 3 runs, every check ran                      |
+| Asks instead of guessing when ambiguous     | yes        | 3 of 3 runs                                       |
+| Same outcome over 3 repeated runs           | 8 of 8     | 8 of 8 scenarios stable                           |
+| Tool calls per CoA (clean CoA)              | 12 (6)     | at most 9 (6)                                     |
+| A clean CoA in under 60 s                   | under 60 s | slowest 13 s                                      |
+
+What this does not show: it is 8 hand-built scenarios, not real CoAs; "cause explained" is checked by the investigation each run must make (and was read by hand once), not graded; one model. The exit code is 3, with a banner, if a scenario that must FAIL is ever reported as PASS.
+
 ## API surface
 
 | Method | Path                | Purpose                                                                                         |
@@ -60,7 +76,7 @@ Errors: 404 unknown run, PDF or sample; 409 answer to a run that is not waiting;
 
 ## Known gaps
 
-- `evaluate.py` (3 runs per scenario, the score table, cost) is a skeleton; the demo script has not been rehearsed.
+- The demo script was rehearsed on the audience-facing scenarios, not against a stopwatch for the full five minutes or with an audience.
 - No authentication, one shared run store: anyone who can reach the UI can read any run. Fine for a laptop demo on synthetic data.
 - Only `gpt-4.1-mini` has been run live, twice over all 8; the prompt was tuned against it (not for `gpt-4.1` or other models). Re-run `check_extraction` and `run_scenario` after any change of model or prompt.
 

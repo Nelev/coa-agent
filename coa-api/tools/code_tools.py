@@ -344,21 +344,23 @@ def get_lot_history(
             abs(ratio / 10**k - 1) <= 0.1 for k in (-2, -1, 1, 2)
         )
 
+    trend = _trend(values)
+    points = [
+        LotPoint(lot=r["lot"], date=r["date"], value=float(r["value"])) for r in rows
+    ]
     return LotHistory(
         supplier_id=supplier_id,
         material_code=material_code,
         test=test,
         unit=rows[0]["unit"] or None,
         n=len(rows),
-        points=[
-            LotPoint(lot=r["lot"], date=r["date"], value=float(r["value"]))
-            for r in rows
-        ],
+        points=points,
         mean=round(statistics.fmean(values), 4),
         median=median,
         stdev=round(stdev, 4),
         slope=round(_slope(values), 5),
-        trend=_trend(values),
+        trend=trend,
+        trend_points=points[-TREND_WINDOW:] if trend != "flat" else [],
         current_value=current_value,
         deviation_z=z,
         decimal_shift=bool(decimal_shift),

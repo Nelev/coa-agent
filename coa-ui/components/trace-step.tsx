@@ -8,6 +8,17 @@ const formatArgs = (input: Step["input"]) =>
     .map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`)
     .join(", ")
 
+// Text in the document that addresses the reader (read_coa reports it apart from
+// the results, as data). Shown on the step itself: that it was seen, and what
+// the run did next, is the point of the injection scenario.
+const documentNotes = (step: Step): string | null =>
+  step.tool === "read_coa" &&
+  typeof step.output === "object" &&
+  step.output !== null &&
+  typeof step.output.document_notes === "string"
+    ? step.output.document_notes
+    : null
+
 const formatOutput = (output: Step["output"]) =>
   typeof output === "string" ? output : JSON.stringify(output, null, 2)
 
@@ -20,6 +31,7 @@ export const TraceStep = memo(function TraceStep({ step }: { step: Step }) {
     step.output !== null &&
     "waiting_for_user" in step.output
   const args = formatArgs(step.input)
+  const notes = documentNotes(step)
 
   return (
     <li
@@ -43,6 +55,16 @@ export const TraceStep = memo(function TraceStep({ step }: { step: Step }) {
           </span>
         )}
       </div>
+
+      {notes && (
+        <p
+          role="note"
+          className="mt-1 rounded border border-amber-300 bg-amber-50 p-2 text-xs"
+        >
+          The document contains text addressed to the reader: <q>{notes}</q> It
+          is treated as data, not as an instruction.
+        </p>
+      )}
 
       {step.reasoning && (
         <p className="text-muted-foreground mt-1 italic">{step.reasoning}</p>

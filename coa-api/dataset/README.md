@@ -38,6 +38,8 @@ Scenario 8's values are in spec for `MAT-001` and out of spec for `MAT-002` (ass
 - `title` is the planted situation in a few words; the UI lists samples by it.
 - `must_call` lists tools that must appear in the agent's trace (e.g. `get_lot_history` for 2 and 3, `ask_user` for 8).
 
+Lot numbers never repeat: no scenario's lot is one the supplier already has in `lot_history.csv` (a test pins it), so a summary cannot read as the same lot delivered twice.
+
 ## Decisions taken on day 2
 
 - **Identification is qualitative.** `spec.csv` has no limits for it. `check_spec` passes it only if the printed result (`result_text`) starts with conforms, complies or positive; "Does not conform" is out of spec.

@@ -302,9 +302,12 @@ def test_digit_swap_is_an_outlier_but_a_normal_lot_is_not():
 def test_rising_trend_is_found_and_flat_history_is_flat():
     h = get_lot_history("SUP-002", "MAT-001", "total_impurities", current_value=0.52)
     assert h.trend == "rising" and h.slope > 0.01
+    # The drift is named: the last five lots, not all ten.
+    assert [p.value for p in h.trend_points] == [0.38, 0.41, 0.44, 0.47, 0.49]
     assert not h.is_outlier  # a trend, not a typo
     for supplier in ("SUP-001", "SUP-003"):
-        assert get_lot_history(supplier, "MAT-001", "total_impurities").trend == "flat"
+        flat = get_lot_history(supplier, "MAT-001", "total_impurities")
+        assert flat.trend == "flat" and flat.trend_points == []
 
 
 def test_no_value_means_no_comparison():

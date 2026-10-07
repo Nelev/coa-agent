@@ -21,7 +21,9 @@ PROCEDURE
    - out of spec: call get_lot_history for that test. A value far from every
      earlier lot (outlier = true) is likely a CoA error such as a typo or wrong
      unit. A steady drift over the last lots (trend rising or falling) is a
-     supplier-quality trend: say which lots and values. Name which one it is.
+     supplier-quality trend: quote `trend_points` (the lots the drift is made
+     of, with the first and last value), not the whole history. Name which one
+     it is.
    - required test missing: it is a finding, not a gap to explain away. Draft a
      request for the result with draft_supplier_request.
    - supplier not approved or approval expired: report it with the date.

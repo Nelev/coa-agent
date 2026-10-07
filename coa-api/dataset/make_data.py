@@ -279,7 +279,7 @@ def scenarios() -> list[Scenario]:
             "A",
             "SUP-002",
             "Paracetamol BP",
-            "VF-26-0309",
+            "VF-26-0310",
             d(2026, 9, 8),
             d(2028, 9, 7),
             rows_for(

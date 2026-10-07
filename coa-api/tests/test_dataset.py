@@ -189,3 +189,15 @@ def test_scenario_8_values_fail_the_other_material():
         if r["material_code"] == "MAT-002" and r["test"] == "assay"
     )
     assert float(assay.result) > float(other["max"])
+
+
+def test_no_scenario_lot_is_one_the_supplier_already_has_in_its_history():
+    """A CoA for a lot the history already lists would read as the same lot
+    delivered twice, and the agent's summary would say so."""
+    past = {r["lot"] for r in rows("lot_history")}
+    assert not past & {s.lot for s in scenarios()}
+
+
+def test_scenario_lots_are_unique():
+    lots = [s.lot for s in scenarios()]
+    assert len(lots) == len(set(lots))

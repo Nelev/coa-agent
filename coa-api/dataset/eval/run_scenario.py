@@ -19,6 +19,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -31,9 +32,9 @@ from settings import get_settings
 from tools.data import load
 
 
-def install(scenario: Scenario) -> str:
+def install(scenario: Scenario, pdf_id: str | None = None) -> str:
     """Put a scenario's PDF where read_coa looks, as an upload would."""
-    pdf_id = f"scenario{scenario.n}"
+    pdf_id = pdf_id or f"scenario{scenario.n}"
     uploads = get_settings().uploads_dir
     uploads.mkdir(parents=True, exist_ok=True)
     shutil.copy(DATASET_DIR / "coa" / scenario.file, uploads / f"{pdf_id}.pdf")
@@ -46,26 +47,52 @@ async def run_one(
     *,
     answer: Callable[[dict], str],
     with_baseline: bool = True,
+    repeat: int = 1,
 ) -> ScenarioRun:
-    """The agent on one scenario, answering its question if it asks, scored."""
+    """The agent on one scenario, answering its question if it asks, scored.
+    Each repeat has its own PDF copy and run id, so repeats can run together."""
     expected = expected_rows()[scenario.file]
-    pdf_id = install(scenario)
-    run_id = f"agent-{scenario.n}"
+    pdf_id = install(scenario, f"scenario{scenario.n}-r{repeat}")
+    run_id = f"agent-{scenario.n}-{repeat}"
 
+    started = time.monotonic()
     outcome = await runner.start(run_id, pdf_id)
     while outcome.phase == "waiting":
         outcome = await runner.resume(run_id, answer(outcome.question))
+    seconds = time.monotonic() - started
     steps = await tracing.tail(run_id)
 
-    out = ScenarioRun(scenario.n, scenario.file, agent=outcome.result, steps=steps)
+    out = ScenarioRun(
+        scenario.n,
+        scenario.file,
+        repeat=repeat,
+        agent=outcome.result,
+        steps=steps,
+        seconds=seconds,
+    )
     out.problems = (
         [f"run ended in {outcome.phase}: {outcome.error}"]
         if outcome.phase == "error"
         else score_agent(expected, outcome.result, steps)
     )
     if with_baseline:
-        out.baseline = (await runner.baseline(f"baseline-{scenario.n}", pdf_id)).result
+        baseline_id = f"baseline-{scenario.n}-{repeat}"
+        started = time.monotonic()
+        out.baseline = (await runner.baseline(baseline_id, pdf_id)).result
+        out.baseline_seconds = time.monotonic() - started
+        out.baseline_steps = await tracing.tail(baseline_id)
     return out
+
+
+def prepare_environment(model: str | None = None) -> Path:
+    """Point the settings at a temporary state directory (and `model`, if given)
+    before anything reads them. Returns the directory."""
+    if model:
+        os.environ["OPENROUTER_MODEL"] = model
+    state_dir = Path(tempfile.mkdtemp(prefix="coa-run-"))
+    os.environ["STATE_DIR"] = str(state_dir)
+    get_settings.cache_clear()
+    return state_dir
 
 
 def expected_answer(question: dict) -> str:
@@ -112,11 +139,7 @@ async def main(argv: list[str]) -> int:
     ap.add_argument("--model", help="OpenRouter model, overrides OPENROUTER_MODEL")
     args = ap.parse_args(argv)
 
-    if args.model:
-        os.environ["OPENROUTER_MODEL"] = args.model
-    state_dir = Path(tempfile.mkdtemp(prefix="coa-run-"))
-    os.environ["STATE_DIR"] = str(state_dir)
-    get_settings.cache_clear()
+    state_dir = prepare_environment(args.model)
     settings = get_settings()
     if not settings.openrouter_api_key:
         print("OPENROUTER_API_KEY is not set (coa-api/.env).")

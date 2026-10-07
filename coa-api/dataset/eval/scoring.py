@@ -61,15 +61,26 @@ def score_agent(
     return problems
 
 
+def tokens(steps: list[ToolCall]) -> tuple[int, int]:
+    """Tokens in and out over a run, nested model calls included."""
+    return sum(s.tokens_in for s in steps), sum(s.tokens_out for s in steps)
+
+
 @dataclass
 class ScenarioRun:
     """One scenario through the agent (and the baseline)."""
 
     n: int
     file: str
+    repeat: int = 1
     agent: dict | None = None
     steps: list[ToolCall] = field(default_factory=list)
+    # Wall-clock seconds for the agent, from start to its last step (a question
+    # is answered at once here, so no human time is in it).
+    seconds: float = 0.0
     baseline: dict | None = None
+    baseline_steps: list[ToolCall] = field(default_factory=list)
+    baseline_seconds: float = 0.0
     problems: list[str] = field(default_factory=list)
 
     @property

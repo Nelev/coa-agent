@@ -174,6 +174,9 @@ class LotHistory(BaseModel):
     slope: float | None = None
     # Whether the last 5 recorded lots move steadily in one direction.
     trend: Trend = "flat"
+    # Those last lots, when they do: the lots the drift is made of, so a summary
+    # can quote them rather than generalise over all ten.
+    trend_points: list[LotPoint] = []
     current_value: float | None = None
     # How far current_value sits from the median, in (floored) standard deviations.
     deviation_z: float | None = None
